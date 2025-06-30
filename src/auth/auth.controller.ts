@@ -1,4 +1,4 @@
-import { Body, Controller, HttpCode, Post, Res } from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, Param, Post, Res } from "@nestjs/common";
 import { AuthService } from "./auth.service";
 import { CreateUserDto } from "../users/dto/create-user.dto";
 import { SigninUserDto } from "../users/dto/signin-user.dto";
@@ -19,5 +19,9 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response
   ) {
     return this.authService.signin(signinUserDto, res);
+  }
+  @Get("activate/:activation_link")
+  async activate(@Param("activation_link") activationLink: string) {
+    return this.authService.activate(activationLink);
   }
 }

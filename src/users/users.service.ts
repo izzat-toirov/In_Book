@@ -57,4 +57,7 @@ export class UsersService {
   async findUserByEmail(email: string) {
     return await this.userModel.findOne({ where: { email } });
   }
+  async findByActivationLink(link: string): Promise<User | null> {
+    return this.userModel.findOne({ where: { activation_link: link } });
+  }
 }

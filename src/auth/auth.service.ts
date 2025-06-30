@@ -10,7 +10,7 @@ import { CreateUserDto } from "../users/dto/create-user.dto";
 import { UsersService } from "../users/users.service";
 import { SigninUserDto } from "../users/dto/signin-user.dto";
 import * as bcrypt from "bcrypt";
-import { Response } from "express";
+import { Request, Response } from "express";
 import { MailService } from "../mail/mail.service";
 
 @Injectable()
@@ -58,7 +58,6 @@ export class AuthService {
     return { message: `Royxatdan otdingiz , Akkauntni tasdiqlang` };
   }
 
-  
   async signin(signinUserDto: SigninUserDto, res: Response) {
     const user = await this.usersService.findUserByEmail(signinUserDto.email);
     if (!user) {
@@ -82,5 +81,65 @@ export class AuthService {
     });
 
     return { message: "You signed in successfully", id: user.id, accessToken };
+  }
+
+  async refresh(req: Request, res: Response) {
+    const token = req.cookies["refreshToken"];
+    if (!token) {
+      throw new UnauthorizedException("Please sign in first");
+    }
+
+    let payload: any;
+    try {
+      payload = await this.jwtSerive.verifyAsync(token, {
+        secret: process.env.REFRESH_TOKEN_KEY,
+      });
+    } catch (error) {
+      console.error(error);
+      throw new UnauthorizedException("Invalid or expired refresh token");
+    }
+
+    const user = await this.usersService.findOne(payload.id);
+    if (!user || !user.refresh_token) {
+      throw new UnauthorizedException("User not found or not signed in");
+    }
+
+    const isTokenValid = await bcrypt.compare(token, user.refresh_token);
+    if (!isTokenValid) {
+      throw new UnauthorizedException("Refresh token does not match");
+    }
+
+    const { accessToken, refreshToken } = await this.generateTokens(user);
+    user.refresh_token = await bcrypt.hash(refreshToken, 7);
+    await user.save();
+
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      maxAge: +process.env.COOKIE_TIME!,
+    });
+
+    return {
+      message: "Tokens refreshed successfully",
+      accessToken,
+    };
+  }
+  async logout(res: Response) {
+    res.clearCookie("refreshToken");
+    return { message: "Logged out" };
+  }
+  async activate(activationLink: string) {
+    const user = await this.usersService.findByActivationLink(activationLink);
+    if (!user) {
+      throw new UnauthorizedException("Activation link is invalid");
+    }
+
+    if (user.is_active) {
+      return { message: "Account is already activated" };
+    }
+
+    user.is_active = true;
+    await user.save();
+
+    return { message: "Your account has been successfully activated" };
   }
 }
