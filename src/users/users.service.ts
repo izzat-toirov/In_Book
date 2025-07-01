@@ -60,4 +60,37 @@ export class UsersService {
   async findByActivationLink(link: string): Promise<User | null> {
     return this.userModel.findOne({ where: { activation_link: link } });
   }
+  async uptadeRefreshToken(id: number, refresh_token: string){
+    const uptadeUser = await this.userModel.update(
+      {refresh_token},
+      {
+        where: {id},
+      }
+    )
+    return uptadeUser;
+  }
+  async activateUser(link: string) {
+    if (!link) {
+      throw new BadRequestException("Activation link not found");
+    }
+    
+    const uptadeUser = await this.userModel.update(
+      { is_active: true },
+      {
+        where: {
+          activation_link: link,
+          is_active: false,
+        },
+        returning: true,
+      }
+    );
+    if (!uptadeUser[1][0]) {
+      throw new BadRequestException("User already activate");
+    }
+    return {
+      message: "User activate successfully",
+      is_active: uptadeUser[1][0].is_active,
+    };
+  }
+
 }

@@ -1,145 +1,146 @@
-import {
-  ConflictException,
-  Injectable,
-  ServiceUnavailableException,
-  UnauthorizedException,
-} from "@nestjs/common";
-import { JwtService } from "@nestjs/jwt";
-import { User } from "../users/models/user.model";
-import { CreateUserDto } from "../users/dto/create-user.dto";
-import { UsersService } from "../users/users.service";
-import { SigninUserDto } from "../users/dto/signin-user.dto";
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotAcceptableException, ServiceUnavailableException, UnauthorizedException } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+
+import { CreateUserDto } from '../users/dto/create-user.dto';
+import { UsersService } from '../users/users.service';
+import { Response } from 'express';
 import * as bcrypt from "bcrypt";
-import { Request, Response } from "express";
-import { MailService } from "../mail/mail.service";
+import { MailService } from '../mail/mail.service';
+import { User } from '../users/models/user.model';
+import { SigninUserDto } from '../users/dto/signin-user.dto';
 
 @Injectable()
 export class AuthService {
-  constructor(
-    private readonly jwtSerive: JwtService,
-    private readonly usersService: UsersService,
-    private readonly mailService: MailService
-  ) {}
-  private async generateTokens(user: User) {
-    const payload = {
-      id: user.id,
-      is_active: user.is_active,
-      is_premium: user.is_premium,
-    };
-    const [accessToken, refreshToken] = await Promise.all([
-      this.jwtSerive.signAsync(payload, {
-        secret: process.env.ACCESS_TOKEN_KEY,
-        expiresIn: process.env.ACCESS_TOKEN_TIME,
-      }),
-      this.jwtSerive.signAsync(payload, {
-        secret: process.env.REFRESH_TOKEN_KEY,
-        expiresIn: process.env.REFRESH_TOKEN_TIME,
-      }),
-    ]);
-    return {
-      accessToken,
-      refreshToken,
-    };
-  }
-  async signup(createUserDto: CreateUserDto) {
-    const candidate = await this.usersService.findUserByEmail(
-      createUserDto.email
-    );
-    if (candidate) {
-      throw new ConflictException("User already exists");
-    }
-    const newUser = await this.usersService.create(createUserDto);
-    try {
-      await this.mailService.sendMail(newUser);
-    } catch (error) {
-      console.log(error);
-      throw new ServiceUnavailableException(`While sending email error`);
-    }
-    return { message: `Royxatdan otdingiz , Akkauntni tasdiqlang` };
-  }
+    constructor(private readonly jwtService: JwtService,
+        private readonly usersService: UsersService,
+        private readonly mailService: MailService
+    ) {}
 
-  async signin(signinUserDto: SigninUserDto, res: Response) {
-    const user = await this.usersService.findUserByEmail(signinUserDto.email);
-    if (!user) {
-      throw new UnauthorizedException("Password or Email incorrect");
-    }
-    const validPassword = await bcrypt.compare(
-      signinUserDto.password,
-      user.password
-    );
+    async generateToken(user: User){
+        const payload = {
+            id: user.id,
+            is_active: user.is_active,
+            is_premimum: user.is_premium,
+        };
 
-    if (!validPassword) {
-      throw new UnauthorizedException("Password or Email incorrect");
-    }
-    const { accessToken, refreshToken } = await this.generateTokens(user);
-
-    user.refresh_token = await bcrypt.hash(refreshToken, 7);
-    await user.save();
-    res.cookie("refreshToken", refreshToken, {
-      maxAge: +process.env.COOKIE_TIME!,
-      httpOnly: true,
-    });
-
-    return { message: "You signed in successfully", id: user.id, accessToken };
-  }
-
-  async refresh(req: Request, res: Response) {
-    const token = req.cookies["refreshToken"];
-    if (!token) {
-      throw new UnauthorizedException("Please sign in first");
+        const [accessToken, refreshToken] = await Promise.all([
+            this.jwtService.signAsync(payload, {
+                secret: process.env.ACCESS_TOKEN_KEY,
+                expiresIn: process.env.ACCESS_TOKEN_TIME,
+            }),
+            this.jwtService.signAsync(payload, {
+                secret: process.env.REFRESH_TOKEN_KEY,
+                expiresIn: process.env.REFRESH_TOKEN_TIME,
+            })
+        ]);
+        return {
+            accessToken, 
+            refreshToken
+        }
     }
 
-    let payload: any;
-    try {
-      payload = await this.jwtSerive.verifyAsync(token, {
-        secret: process.env.REFRESH_TOKEN_KEY,
+    async signUp(createUserDto: CreateUserDto){
+        const condidate = await this.usersService.findUserByEmail(createUserDto.email);
+        if(condidate){
+            throw new ConflictException('Bunday foydalanuvchi mavjud');
+        }
+
+        const newUser = await this.usersService.create(createUserDto);
+
+        try {
+            await this.mailService.sendMail(newUser);
+        } catch (error) {
+            console.log(error);
+            throw new ServiceUnavailableException("Emailga xat yuborishda xatolik");
+            
+        }
+        
+
+        return {message : "Royxatdan otdinggiz akkni faollashtirish uchun emailni tasdiqlang"};
+    }
+
+    async signIn(signInUserDto: SigninUserDto, res: Response) {
+        const user = await this.usersService.findUserByEmail(signInUserDto.email);
+        if(!user){
+            throw new UnauthorizedException("Email yoki pasword natogri");
+        }
+        const isMatch = await bcrypt.compare(signInUserDto.password, user.password);
+        if(!isMatch){
+            throw new UnauthorizedException("Email yoki pasword natogri");
+        }
+        const {accessToken, refreshToken} = await this.generateToken(user);
+        user.refresh_token = await bcrypt.hash(refreshToken, 7);
+        await user.save();
+
+        res.cookie("refreshToken", refreshToken, {
+            maxAge: +process.env.COOKIE_TIME!,
+            httpOnly: true
+        })
+        return {message: "Tizimga hush kelibsiz", id: user.id, accessToken};
+    }
+
+    async signOut(refreshToken: string, res: Response){
+      let userData: any;
+      try {
+        userData = await this.jwtService.verify(refreshToken, {
+          secret: process.env.REFRESH_TOKEN_KEY,
       });
-    } catch (error) {
-      console.error(error);
-      throw new UnauthorizedException("Invalid or expired refresh token");
+      } catch (error) {
+        throw new BadRequestException(error)
+      }
+        if(!userData){
+            throw new ForbiddenException('User not found')
+        }
+        await this.usersService.uptadeRefreshToken(userData.id, "");
+
+        res.clearCookie("refreshToken");
+        return {
+            message: "User logged out successfuly"
+        }
     }
 
-    const user = await this.usersService.findOne(payload.id);
-    if (!user || !user.refresh_token) {
-      throw new UnauthorizedException("User not found or not signed in");
+    async refreshToken(
+      userId: number,
+      refreshTokenFromCookie: string,
+      res: Response
+    ) {
+      const decodeToken = await this.jwtService.decode(refreshTokenFromCookie);
+      console.log(userId);
+      console.log(decodeToken["id"]);
+
+      if(userId !== decodeToken["id"]){
+        throw new ForbiddenException("Ruxsat etilmagan")
+      }
+      const user = await this.usersService.findOne(userId);
+
+      if(!user || !user.refresh_token){
+        throw new NotAcceptableException("user no found");
+      }
+      const tokenMatch = await bcrypt.compare(
+        refreshTokenFromCookie, user.refresh_token
+      );
+
+      if(!tokenMatch){
+        throw new ForbiddenException("Forbiden");
+      }
+      const {accessToken, refreshToken} = await this.generateToken(user);
+
+
+
+      const refresh_token = await bcrypt.hash(refreshToken, 7);
+      await this.usersService.uptadeRefreshToken(user.id, refresh_token);
+
+      res.cookie("refreshToken", refreshToken, {
+        maxAge: Number(process.env.COOKIE_TIME),
+        httpOnly: true
+      });
+
+      const response = {
+        message: "User already",
+        userId: user.id,
+        accessToken: accessToken,
+      };
+      return response;
+      
     }
-
-    const isTokenValid = await bcrypt.compare(token, user.refresh_token);
-    if (!isTokenValid) {
-      throw new UnauthorizedException("Refresh token does not match");
-    }
-
-    const { accessToken, refreshToken } = await this.generateTokens(user);
-    user.refresh_token = await bcrypt.hash(refreshToken, 7);
-    await user.save();
-
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      maxAge: +process.env.COOKIE_TIME!,
-    });
-
-    return {
-      message: "Tokens refreshed successfully",
-      accessToken,
-    };
-  }
-  async logout(res: Response) {
-    res.clearCookie("refreshToken");
-    return { message: "Logged out" };
-  }
-  async activate(activationLink: string) {
-    const user = await this.usersService.findByActivationLink(activationLink);
-    if (!user) {
-      throw new UnauthorizedException("Activation link is invalid");
-    }
-
-    if (user.is_active) {
-      return { message: "Account is already activated" };
-    }
-
-    user.is_active = true;
-    await user.save();
-
-    return { message: "Your account has been successfully activated" };
-  }
 }
