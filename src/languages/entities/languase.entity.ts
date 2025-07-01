@@ -1,4 +1,5 @@
-import { Column, DataType, Model, Table } from "sequelize-typescript";
+import { Column, DataType, HasMany, Model, Table } from "sequelize-typescript";
+import { BookVersion } from "../../book_version/entities/book_version.entity";
 
 interface ILanguase {
     code: string;
@@ -19,4 +20,8 @@ export class Languase extends Model<Languase, ILanguase>{
         type: DataType.STRING
     })
     declare flag: string;
+
+
+    @HasMany(() => BookVersion)
+    declare bookVersion: BookVersion[];
 }

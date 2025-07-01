@@ -15,9 +15,29 @@ import { AuthorsModule } from './authors/authors.module';
 import { Author } from "./authors/entities/author.entity";
 import { CategoriesModule } from './categories/categories.module';
 import { Categories } from "./categories/entities/category.entity";
+import { TelegrafModule } from "nestjs-telegraf";
+import { BOT_NAME } from "./app.constants";
+import { BotModule } from './bot/bot.module';
+import { AudioBookModule } from './audio_book/audio_book.module';
+import { AudioBook } from "./audio_book/entities/audio_book.entity";
+import { AudioPartsModule } from './audio_parts/audio_parts.module';
+import { AudioPart } from "./audio_parts/entities/audio_part.entity";
+import { BookVersionModule } from './book_version/book_version.module';
+import { BookVersion } from "./book_version/entities/book_version.entity";
+import { BooksModule } from './books/books.module';
+import { Books } from "./books/entities/book.entity";
 
 @Module({
   imports: [
+    TelegrafModule.forRootAsync({
+      botName: BOT_NAME,
+      useFactory: ()=>({
+        token:process.env.BOT_TOKEN!,
+        middlewares:[],
+        include:[BotModule],
+      })
+    }),
+
     ConfigModule.forRoot({
       envFilePath: ".env",
       isGlobal: true,
@@ -30,7 +50,7 @@ import { Categories } from "./categories/entities/category.entity";
       username: process.env.PG_USER,
       password: process.env.PG_PASSWORD,
       database: process.env.PG_DB,
-      models: [User, Genre, Languase, Author, Categories],
+      models: [User, Genre, Languase, Author, Categories, AudioBook, AudioPart, BookVersion, Books],
       autoLoadModels: true,
       logging: false,
       sync: { alter: true }, //force
@@ -42,6 +62,11 @@ import { Categories } from "./categories/entities/category.entity";
     LanguaseModule,
     AuthorsModule,
     CategoriesModule,
+    BotModule,
+    AudioBookModule,
+    AudioPartsModule,
+    BookVersionModule,
+    BooksModule
   ],
   controllers: [],
   providers: [],
