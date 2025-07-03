@@ -1,6 +1,7 @@
 import { AutoIncrement, Column, DataType, Model, Table } from "sequelize-typescript";
 
 interface ILibrary {
+    user_id: number;
     last_state: string;
 }
 
@@ -12,6 +13,11 @@ export class Library extends Model<Library, ILibrary>{
         primaryKey: true
     })
     declare id: number;
+
+    @Column({
+        type: DataType.BIGINT,
+    })
+    declare user_id: number;
 
     @Column({
         type: DataType.STRING,

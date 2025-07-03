@@ -5,12 +5,16 @@ import { InjectBot } from "nestjs-telegraf";
 
 import { Context, Markup, Telegraf } from "telegraf";
 import { BOT_NAME } from "../app.constants";
+import { Library } from "./library/model/library.model";
+import { Op } from "sequelize";
 
 @Injectable()
 export class BotService {
   constructor(
     @InjectModel(Bot)
     private readonly botModel: typeof Bot,
+    @InjectModel(Library)
+    private readonly libraryModel: typeof Library,
     @InjectBot(BOT_NAME)
     private readonly bot: Telegraf<Context>
   ) {}
@@ -48,7 +52,7 @@ export class BotService {
         await ctx.replyWithHTML(
           `Ushbu bot Inbook Premium foydalanucchilari uchun kitop izlash imkonini beradai`,
           {
-            ...Markup.removeKeyboard(),
+            ...Markup.keyboard([["📚Kutubxona", "📕Kitib"]]).resize(),
           }
         );
     }
@@ -144,4 +148,49 @@ async onStop(ctx: Context) {
 
   }
 
+  async onText(ctx: Context){
+    try {
+      const user_id = ctx.from?.id;
+      const user = await this.botModel.findByPk(user_id);
+      if (!user) {
+        await ctx.replyWithHTML(`Siz avval <b>start</b> tugmasini bosing`, {
+          ...Markup.keyboard([["/start"]]).resize(),
+        });
+      } else {
+        if("text" in ctx.message!){
+          const library = await this.libraryModel.findOne({
+            where: {user_id, last_state: {[Op.ne]: "finish"}},
+            order: [["id", "DESC"]]
+          });
+  
+          if(library){
+            const userInoutTExt = ctx.message.text;
+            switch (library.last_state) {
+              case "name":
+                library.name = userInoutTExt
+                library.last_state = "address";
+                await library.save();
+                await ctx.replyWithHTML("Kutubxona manzilini kiriting: ");
+                break;
+                case "address":
+                library.address = userInoutTExt
+                library.last_state = "loaction";
+                await library.save();
+                await ctx.replyWithHTML("Kutubxona manzilini locationi yuboring: ", {
+                  ...Markup.keyboard([[Markup.button.locationRequest("Manzilni tanglang: ")]]).resize(),
+                });
+                break;
+            
+              default:
+                break;
+            }
+          }
+        }
+      }
+     
+    } catch (error) {
+      console.log(`Error on Text:::|||| `, error);
+    }
+
+  }
 }

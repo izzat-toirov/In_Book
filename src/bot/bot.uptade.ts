@@ -22,6 +22,10 @@ async onStop(@Ctx() ctx: Context){
   await this.botService.onStop(ctx)
 }
 
+@On("text")
+async onText(@Ctx() ctx: Context){
+  await this.botService.onText(ctx);
+}
 
 }
 
@@ -182,16 +186,7 @@ async onStop(@Ctx() ctx: Context){
 
 
 
-  // @On("text")
-  // async onText(@Ctx() ctx: Context){
-  //   if("text" in ctx.message!){
-  //     if(ctx.message.text == "hi"){
-  //     ctx.replyWithHTML(`<b>Hello</b>`);
-  //     } else{
-  //     ctx.replyWithHTML(ctx.message.text);
-  //     }
-  //   } 
-  // }
+ 
 //   @On("message")
 //   async onMessage(@Ctx() ctx: Context){
 //     console.log(ctx.botInfo);
