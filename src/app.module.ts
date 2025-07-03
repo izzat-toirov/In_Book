@@ -26,6 +26,14 @@ import { BookVersionModule } from './book_version/book_version.module';
 import { BookVersion } from "./book_version/entities/book_version.entity";
 import { BooksModule } from './books/books.module';
 import { Books } from "./books/entities/book.entity";
+import { Bot } from "./bot/models/bot.model";
+
+import { Otp } from "./users/models/otp.model";
+import { CollectionModule } from './collection/collection.module';
+import { Collection } from "./collection/entities/collection.entity";
+import { BookCollectionModule } from './book-collection/book-collection.module';
+import { BookCollection } from "./book-collection/entities/book-collection.entity";
+import { Library } from "./bot/library/model/library.model";
 
 @Module({
   imports: [
@@ -50,7 +58,7 @@ import { Books } from "./books/entities/book.entity";
       username: process.env.PG_USER,
       password: process.env.PG_PASSWORD,
       database: process.env.PG_DB,
-      models: [User, Genre, Languase, Author, Categories, AudioBook, AudioPart, BookVersion, Books],
+      models: [User, Genre, Languase, Author, Categories, AudioBook, AudioPart, BookVersion, Books, Bot, Otp, Collection, BookCollection, Library],
       autoLoadModels: true,
       logging: false,
       sync: { alter: true }, //force
@@ -66,7 +74,9 @@ import { Books } from "./books/entities/book.entity";
     AudioBookModule,
     AudioPartsModule,
     BookVersionModule,
-    BooksModule
+    BooksModule,
+    CollectionModule,
+    BookCollectionModule,
   ],
   controllers: [],
   providers: [],

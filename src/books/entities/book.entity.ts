@@ -1,5 +1,6 @@
-import { BelongsTo, Column, DataType, ForeignKey, Model, Table } from "sequelize-typescript";
+import { BelongsTo, Column, DataType, ForeignKey, HasMany, Model, Table } from "sequelize-typescript";
 import { Author } from "../../authors/entities/author.entity";
+import { BookCollection } from "../../book-collection/entities/book-collection.entity";
 
 interface IBooks {
     publisher_year: Date;
@@ -21,4 +22,7 @@ export class Books extends Model<Books, IBooks>{
 
     @BelongsTo(() => Author)
     declare author: Author;
+
+    @HasMany(() => BookCollection)
+    declare bookCollection: BookCollection[];
 }
