@@ -29,8 +29,8 @@ export class UsersController {
     return this.usersService.verifyOtp(verifyUserDto);
   }
 
-  @UseGuards(IsCreatorGuard)
-  @UseGuards(UserGuard)
+  // @UseGuards(IsCreatorGuard)
+  // @UseGuards(UserGuard)
   @Get()
   findAll() {
     return this.usersService.findAll();

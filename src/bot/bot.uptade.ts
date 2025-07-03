@@ -27,8 +27,23 @@ async onText(@Ctx() ctx: Context){
   await this.botService.onText(ctx);
 }
 
+@On("location")
+async onLocation(@Ctx() ctx: Context){
+  await this.botService.onLocation(ctx);
 }
 
+}
+
+
+// if("location" in ctx.message!){
+//   // console.log(ctx.message.contact);
+//   await ctx.reply(String(ctx.message.location.latitude));
+//   await ctx.reply(String(ctx.message.location.longitude));
+//   await ctx.replyWithLocation(
+//     ctx.message.location.latitude,
+//     ctx.message.location.longitude
+//   )
+// }
 //   @On("photo")
 //   async onPhoto(@Ctx() ctx: Context){
 //     if("photo" in ctx.message!){
@@ -71,18 +86,7 @@ async onText(@Ctx() ctx: Context){
 //     }
 //   }
 
-//   @On("location")
-//   async onlocation(@Ctx() ctx: Context){
-//     if("location" in ctx.message!){
-//       // console.log(ctx.message.contact);
-//       await ctx.reply(String(ctx.message.location.latitude));
-//       await ctx.reply(String(ctx.message.location.longitude));
-//       await ctx.replyWithLocation(
-//         ctx.message.location.latitude,
-//         ctx.message.location.longitude
-//       )
-//     }
-//   }
+
 
 //   @On("voice")
 //   async onvoice(@Ctx() ctx: Context){

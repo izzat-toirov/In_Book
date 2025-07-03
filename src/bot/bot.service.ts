@@ -180,6 +180,16 @@ async onStop(ctx: Context) {
                   ...Markup.keyboard([[Markup.button.locationRequest("Manzilni tanglang: ")]]).resize(),
                 });
                 break;
+                case "phone_number":
+                  library.phone_number = userInoutTExt
+                  library.last_state = "finish";
+                  await library.save();
+                  await ctx.replyWithHTML("Yangi kutubxona qoshildi", {
+                    ...Markup.keyboard([[
+                      "Yangi kutubxona qoshish", "Barcha kutubxonalar"
+                    ]]).resize()
+                  });
+                  break;
             
               default:
                 break;
@@ -193,4 +203,47 @@ async onStop(ctx: Context) {
     }
 
   }
+
+  async onLocation (ctx: Context){
+    try {
+      if("location" in ctx.message!){
+
+        const user_id = ctx.from?.id;
+      const user = await this.botModel.findByPk(user_id);
+      if (!user) {
+        await ctx.replyWithHTML(`Siz avval <b>start</b> tugmasini bosing`, {
+          ...Markup.keyboard([["/start"]]).resize(),
+        });
+      } else {
+        const library = await this.libraryModel.findOne({
+          where: {user_id, last_state: "location"},
+          order: [["id", "DESC"]]
+        });
+
+        if(library){
+          library.location = ctx.message.location.latitude+","+
+          ctx.message.location.longitude;
+          library.last_state = "phone_number";
+          await library.save();
+          await ctx.replyWithHTML("Kutubxona telefonini kiriting: ", {
+            ...Markup.removeKeyboard(),
+          });
+        }
+      }
+
+
+        await ctx.reply(String(ctx.message.location.latitude));
+        await ctx.reply(String(ctx.message.location.longitude));
+        await ctx.replyWithLocation(
+          ctx.message.location.latitude,
+          ctx.message.location.longitude
+        )
+      }
+    }
+     catch (error) {
+      console.log(`Error  in location:::`, error);
+      
+    }
+  }
+
 }

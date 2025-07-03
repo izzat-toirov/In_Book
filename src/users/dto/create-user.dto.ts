@@ -1,5 +1,7 @@
 import { IsEmail, IsNotEmpty, IsPhoneNumber, IsString, IsNumber, Min, Max } from "class-validator";
 import { ApiProperty } from "@nestjs/swagger";
+import { HasMany } from "sequelize-typescript";
+import { BookMark } from "../../book-marks/entities/book-mark.entity";
 
 export class CreateUserDto {
   @ApiProperty()
@@ -38,4 +40,6 @@ export class CreateUserDto {
   @Min(1900)
   @Max(new Date().getFullYear())
   birth_year: number;
+
+
 }

@@ -1,4 +1,6 @@
-import { Column, DataType, Model, Table } from "sequelize-typescript";
+import { Column, DataType, HasMany, Model, Table } from "sequelize-typescript";
+import { BookMark } from "../../book-marks/entities/book-mark.entity";
+import { Subscription } from "../../subscription/entities/subscription.entity";
 
 interface IUserCreationAttr {
   full_name: string;
@@ -71,4 +73,10 @@ export class User extends Model<User, IUserCreationAttr> {
     type: DataType.STRING(2000),
   })
   declare refresh_token: string;
+
+  @HasMany(() => BookMark)
+  declare bookMark: BookMark[];
+
+  @HasMany(() => Subscription)
+  declare subscription: Subscription[];
 }
